@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>損益分配計算器 (自動記憶版)</title>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --accent: #27ae60;
+            --danger: #c0392b;
+            --bg: #f4f6f7;
+            --card: #ffffff;
+            --border: #e0e0e0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg);
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            color: var(--primary);
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+        }
+
+        /* 頂部總損益輸入區 */
+        .top-section {
+            background: var(--card);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        label {
+            font-size: 0.9rem;
+            color: #666;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        input[type="number"], input[type="text"] {
+            padding: 10px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 1.1rem;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--accent);
+            background: #f9fff9;
+        }
+
+        /* 總結算顯示 */
+        .total-summary {
+            grid-column: 1 / -1;
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 10px;
+        }
+
+        .summary-item {
+            text-align: center;
+        }
+
+        .big-number {
+            font-size: 1.4rem;
+            font-weight: bold;
+        }
+
+        /* 成員列表 */
+        .member-list {
+            background: var(--card);
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            overflow: hidden;
+        }
+
+        .member-header {
+            background: var(--primary);
+            color: white;
+            padding: 12px;
+            display: grid;
+            grid-template-columns: 1.5fr 2fr 2fr 50px;
+            gap: 10px;
+            font-weight: bold;
+            font-size: 0.95rem;
+        }
+
+        .member-row {
+            display: grid;
+            grid-template-columns: 1.5fr 2fr 2fr 50px;
+            gap: 10px;
+            padding: 12px;
+            border-bottom: 1px solid var(--border);
+            align-items: center;
+        }
+
+        .member-row:last-child {
+            border-bottom: none;
+        }
+
+        .result-cell {
+            text-align: right;
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+
+        .btn-remove {
+            background: #ffebeb;
+            color: var(--danger);
+            border: none;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            cursor: pointer;
+            font-size: 1.2rem;
+            line-height: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-add {
+            width: 100%;
+            padding: 15px;
+            background: white;
+            border: 2px dashed #ddd;
+            color: #888;
+            font-size: 1rem;
+            cursor: pointer;
+            margin-top: 10px;
+            border-radius: 8px;
+            transition: 0.2s;
+        }
+
+        .btn-add:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+            background: #f0fdf4;
+        }
+
+        .actions {
+            margin-top: 20px;
+            text-align: center;
+        }
+        
+        .btn-reset {
+            background: #7f8c8d;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            cursor: pointer;
+        }
+
+        .profit { color: var(--accent); }
+        .loss { color: var(--danger); }
+
+        /* 手機版適配 */
+        @media (max-width: 600px) {
+            .member-header { display: none; }
+            
+            .member-row {
+                grid-template-columns: 1fr 1fr;
+                grid-template-areas: 
+                    "name principal"
+                    "profit delete";
+                gap: 8px;
+                padding: 15px;
+                border-bottom: 4px solid #f4f6f7;
+            }
+
+            .member-row input[type="text"] { grid-area: name; font-weight: bold; }
+            .member-row input[type="number"] { grid-area: principal; }
+            .result-cell { 
+                grid-area: profit; 
+                text-align: left; 
+                padding-left: 5px;
+                font-size: 1.2rem;
+            }
+            .result-cell::before {
+                content: "獲利: ";
+                font-size: 0.9rem;
+                color: #999;
+                font-weight: normal;
+            }
+            .btn-remove { grid-area: delete; justify-self: end; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>投資損益分配表</h1>
+
+    <div class="top-section">
+        <div class="input-group">
+            <label>已實現損益 ($)</label>
+            <input type="number" id="realizedProfit" value="0" placeholder="輸入金額" oninput="updateCalculation()">
+        </div>
+        <div class="input-group">
+            <label>未實現損益 ($)</label>
+            <input type="number" id="unrealizedProfit" value="0" placeholder="輸入金額" oninput="updateCalculation()">
+        </div>
+
+        <div class="total-summary">
+            <div class="summary-item">
+                <div style="font-size:0.8rem; color:#666;">總損益池</div>
+                <div class="big-number" id="displayTotalProfit">0</div>
+            </div>
+            <div class="summary-item">
+                <div style="font-size:0.8rem; color:#666;">總報酬率</div>
+                <div class="big-number" id="displayROI">0%</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="member-list">
+        <div class="member-header">
+            <div>姓名</div>
+            <div>本金</div>
+            <div style="text-align: right;">分配損益 / 總值</div>
+            <div></div>
+        </div>
+        <div id="membersContainer">
+            </div>
+    </div>
+
+    <button class="btn-add" onclick="addMember()">+ 新增成員</button>
+
+    <div class="actions">
+        <button class="btn-reset" onclick="resetData()">重置為預設值</button>
+        <p style="font-size: 0.8rem; color: #999; margin-top: 10px;">* 所有修改會自動儲存於此裝置</p>
+    </div>
+</div>
+
+<script>
+    // 預設資料 (依據您的檔案)
+    const DEFAULT_DATA = {
+        realized: 0,
+        unrealized: 0,
+        members: [
+            { name: '強', principal: 301000 },
+            { name: '喬', principal: 10000 },
+            { name: '媛', principal: 10000 }
+        ]
+    };
+
+    let appData = {};
+
+    // 初始化
+    function init() {
+        const saved = localStorage.getItem('finance_data_v1');
+        if (saved) {
+            appData = JSON.parse(saved);
+        } else {
+            appData = JSON.parse(JSON.stringify(DEFAULT_DATA));
+        }
+        renderInputs();
+        renderMembers();
+        updateCalculation();
+    }
+
+    // 渲染上方輸入框
+    function renderInputs() {
+        document.getElementById('realizedProfit').value = appData.realized;
+        document.getElementById('unrealizedProfit').value = appData.unrealized;
+    }
+
+    // 渲染成員列表
+    function renderMembers() {
+        const container = document.getElementById('membersContainer');
+        container.innerHTML = '';
+
+        appData.members.forEach((member, index) => {
+            const row = document.createElement('div');
+            row.className = 'member-row';
+            row.innerHTML = `
+                <input type="text" value="${member.name}" placeholder="姓名" oninput="updateMember(${index}, 'name', this.value)">
+                <input type="number" value="${member.principal}" placeholder="本金" oninput="updateMember(${index}, 'principal', this.value)">
+                <div class="result-cell" id="res-${index}">$0</div>
+                <button class="btn-remove" onclick="removeMember(${index})">×</button>
+            `;
+            container.appendChild(row);
+        });
+    }
+
+    // 更新成員資料
+    function updateMember(index, field, value) {
+        if (field === 'principal') {
+            appData.members[index][field] = parseFloat(value) || 0;
+        } else {
+            appData.members[index][field] = value;
+        }
+        saveAndCalc();
+    }
+
+    // 新增成員
+    function addMember() {
+        appData.members.push({ name: '', principal: 0 });
+        renderMembers();
+        saveAndCalc();
+    }
+
+    // 移除成員
+    function removeMember(index) {
+        if(confirm('確定要刪除這位成員嗎？')) {
+            appData.members.splice(index, 1);
+            renderMembers();
+            saveAndCalc();
+        }
+    }
+
+    // 更新上方總損益輸入
+    document.getElementById('realizedProfit').addEventListener('input', (e) => {
+        appData.realized = parseFloat(e.target.value) || 0;
+        saveAndCalc();
+    });
+
+    document.getElementById('unrealizedProfit').addEventListener('input', (e) => {
+        appData.unrealized = parseFloat(e.target.value) || 0;
+        saveAndCalc();
+    });
+
+    // 儲存並計算
+    function saveAndCalc() {
+        localStorage.setItem('finance_data_v1', JSON.stringify(appData));
+        updateCalculation();
+    }
+
+    // 核心計算邏輯
+    function updateCalculation() {
+        // 1. 計算總損益
+        const totalProfit = appData.realized + appData.unrealized;
+        
+        // 2. 計算總本金
+        let totalPrincipal = 0;
+        appData.members.forEach(m => totalPrincipal += m.principal);
+
+        // 3. 計算報酬率 (總損益 / 總本金)
+        let roi = 0;
+        if (totalPrincipal !== 0) {
+            roi = totalProfit / totalPrincipal;
+        }
+
+        // 4. 更新 UI - 總體統計
+        const profitEl = document.getElementById('displayTotalProfit');
+        profitEl.textContent = formatMoney(totalProfit);
+        profitEl.className = 'big-number ' + (totalProfit >= 0 ? 'profit' : 'loss');
+
+        const roiEl = document.getElementById('displayROI');
+        roiEl.textContent = (roi * 100).toFixed(2) + '%';
+        roiEl.className = 'big-number ' + (roi >= 0 ? 'profit' : 'loss');
+
+        // 5. 更新個別成員分配
+        appData.members.forEach((member, index) => {
+            const memberProfit = member.principal * roi;
+            const memberTotal = member.principal + memberProfit;
+            
+            const el = document.getElementById(`res-${index}`);
+            if (el) {
+                // 顯示格式： 損益 (總金額)
+                // 例如: +12,000 (313,000)
+                const sign = memberProfit >= 0 ? '+' : '';
+                const colorClass = memberProfit >= 0 ? 'profit' : 'loss';
+                
+                el.innerHTML = `
+                    <span class="${colorClass}">${sign}${formatMoney(memberProfit)}</span><br>
+                    <span style="font-size:0.85em; color:#888;">(${formatMoney(memberTotal)})</span>
+                `;
+            }
+        });
+    }
+
+    function formatMoney(num) {
+        return Math.round(num).toLocaleString();
+    }
+
+    function resetData() {
+        if(confirm('確定要重置所有資料嗎？這將清除您手動輸入的紀錄。')) {
+            appData = JSON.parse(JSON.stringify(DEFAULT_DATA));
+            renderInputs();
+            renderMembers();
+            saveAndCalc();
+        }
+    }
+
+    // 啟動
+    init();
+
+</script>
+
+</body>
+</html>
